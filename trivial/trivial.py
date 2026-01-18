@@ -1,8 +1,12 @@
 from os import path
 
+
+preguntas = "preguntas.csv"
 jugadores = "jugadores.csv"
 jugadores_list = []
 trivial = "trivial.py"
+respuestas = ["a", "b", "c", "d"]
+posiciones = [1, 2, 3, 4]
 
 if not path.exists(jugadores):
     open(jugadores, "x")
@@ -21,6 +25,7 @@ def recuperarJugadores():
             jugador = jugador.strip("\n")
             jugadores_list.append(jugador.split(","))
             jugador = fichero.readline()
+    fichero.close()
 
 
 def registrarJugador():
@@ -32,26 +37,37 @@ def registrarJugador():
     else:
         print("El jugador ya está registrado")
     iniciarSesion()
+    fichero.close()
 
 
 def verificarExistencia(nombre:str):
     encontrado = False
-    with open(jugadores, "r") as fichero:
+    with open(jugadores, "r", encoding="utf8") as fichero:
         jugador = fichero.readline()
         while jugador:
             if jugador.split(",")[0] == nombre:
                 encontrado = True
             jugador = fichero.readline()
+    fichero.close()
     return encontrado
 
 
 def iniciarSesion():
     nombre = input("Inicia sesión escribiendo el nombre de usuario: ")
-    posicion = 0
-    for i in range(len(jugadores_list)):
-        if nombre in jugadores_list[i]:
-            posicion = i
-    jugar(posicion)
+    if nombre == "ranking":
+        if len(jugadores_list) != 0:
+            verRanking()
+        else:
+            print("No hay jugadores que mostrar")
+    else:
+        if not verificarExistencia(nombre):
+            print("El jugador no está registrado.")
+        else:
+            posicion = 0
+            for i in range(len(jugadores_list)):
+                if nombre in jugadores_list[i]:
+                    posicion = i
+            jugar(posicion)
 
 def menu():
     print("BIENVENIDO\nEscoja una opción:\n1. Iniciar Sesión\n2. Registrarse\n3. Salir")
@@ -73,10 +89,43 @@ def menu():
     else:
         pass
 
+def guardarDatos():
+    with open(jugadores, "w", encoding="utf8") as old_jugadores:
+        for jugador in jugadores_list:
+            old_jugadores.write(f"{jugador[0]},{jugador[1]},{jugador[2]},{jugador[3]}\n")
+
+def verRanking():
+    ranking = sorted(jugadores_list, key=lambda jugador: int(jugador[2]), reverse=True)
+    for jugador in ranking:
+        print(f"{ranking.index(jugador) + 1}. {jugador[0]} ({jugador[2]} aciertos)")
+
+
+
+def jugar(posicion:int):
+    with open(preguntas, "r", encoding="utf8") as preguntas_list:
+        for i in range(int(jugadores_list[posicion][1])):
+            preguntas_list.readline()
+        pregunta = preguntas_list.readline().strip("\n").split(",")
+        respuesta = 0
+        while pregunta[0] and respuesta != jugadores_list[posicion][0]:
+            print(pregunta[0])
+            for j in range(1, 5):
+                print(f"{respuestas[j-1]}. {pregunta[j]}")
+            respuesta = input("Introduzca la letra de la respuesta correcta: ").lower()
+            while respuesta not in respuestas and respuesta != jugadores_list[posicion][0]:
+                respuesta = input("Letra no válida. Inténtelo de nuevo: ")
+            if respuesta in respuestas:
+                if pregunta[respuestas.index(respuesta) + 1] == pregunta[len(pregunta)-1]:
+                    print("Respuesta correcta!")
+                    jugadores_list[posicion][2] = str(int(jugadores_list[posicion][2]) + 1)
+                else:
+                    print("Respuesta incorrecta!")
+                    jugadores_list[posicion][3] = str(int(jugadores_list[posicion][3]) + 1)
+                jugadores_list[posicion][1] = str(int(jugadores_list[posicion][1]) + 1)
+            pregunta = preguntas_list.readline().strip("\n").split(",")
+    preguntas_list.close()
+    print(f"Tuviste {jugadores_list[posicion][2]} aciertos y {jugadores_list[posicion][3]} errores.")
 
 recuperarJugadores()
-def jugar(posicion:int):
-    print(posicion)
-    print(jugadores_list[posicion])
-
 menu()
+guardarDatos()
